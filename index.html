@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Happy Birthday!</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#3a0f1c;--bg2:#1c2a4a;--coral:#e8573f;--cream:#f6e6cf;--lace:#fff6ea;--ink:#4a1a22;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(135deg,var(--bg1),var(--bg2));font-family:'Caveat',cursive,sans-serif;color:var(--cream);position:relative}
+#bg,#pets{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#bg{z-index:0}#pets{z-index:5}
+.star{position:absolute;width:6px;height:6px;border-radius:50%;background:#ffd9c2}
+.pet{position:absolute;left:0;top:0;font-size:38px;line-height:1}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px 16px 80px;text-align:center;z-index:1}
+.slide.on{display:flex}
+h1{font-size:clamp(44px,10vw,88px);margin:0;line-height:1;color:var(--lace);text-shadow:0 4px 0 var(--coral)}
+h2{font-size:clamp(30px,6vw,48px);margin:0;color:var(--lace)}
+.line{font-size:clamp(26px,5vw,40px);max-width:520px;margin:0;line-height:1.15}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:center;justify-content:center}
+.heartframe{width:min(300px,70vw);position:relative}
+.bow{position:absolute;top:-6%;right:6%;font-size:48px}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:12px;justify-content:center}
+.key{width:64px;height:64px;border-radius:50%;border:3px solid #fff3;background:var(--cream);color:var(--ink);font:700 32px 'Caveat',cursive;cursor:pointer;text-decoration:underline;box-shadow:0 4px 0 #b9805f}
+.key:active{transform:translateY(3px);box-shadow:none}
+.boxes{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+.box{width:50px;height:50px;border:4px solid var(--lace);border-radius:12px;background:#fff1;font-size:36px;line-height:46px;color:var(--lace)}
+.polaroid{background:var(--lace);padding:14px 14px 40px;border-radius:6px;box-shadow:0 14px 30px #0008;color:var(--ink);position:relative;width:min(300px,76vw)}
+.polaroid .ph{height:min(300px,42vh);background:#e9d3bd;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
+.polaroid img{width:100%;height:100%;object-fit:cover}
+.tape{position:absolute;top:-14px;left:50%;width:90px;height:28px;margin-left:-45px;background:#e8573fcc;transform:rotate(-4deg)}
+.cap{font-size:28px;margin-top:6px}
+#nav{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;display:none;justify-content:center;align-items:center;gap:20px;z-index:10}
+#nav button,.cta{border:0;border-radius:999px;background:var(--coral);color:#fff;font:700 28px 'Caveat',cursive;padding:6px 26px;cursor:pointer;box-shadow:0 4px 0 #9b2f1d}
+#cnt{font-size:26px;min-width:64px}
+.fh{position:absolute;bottom:-30px;font-size:26px;pointer-events:none}
+svg{max-width:100%;overflow:visible}
+#music-btn{position:fixed;top:16px;right:16px;z-index:100;border:0;border-radius:50%;width:48px;height:48px;background:var(--coral);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 12px #0005;display:flex;align-items:center;justify-content:center;transition:transform 0.2s}
+#music-btn:hover{transform:scale(1.1)}
+#music-btn.playing{animation:spinMusic 4s linear infinite}
+@keyframes spinMusic{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.star{display:none}}
+</style></head>
+<body>
+<audio id="audio-player" src="ey_pataakey.webm" loop playsinline preload="auto"></audio>
+<button id="music-btn" title="Ey Pataakey Song" aria-label="Toggle Music">🎵</button>
+<div id="bg"></div>
+<main id="stage"></main>
+<div id="pets"></div>
+<div id="nav"><button id="prev" aria-label="Previous">&lt;</button><span id="cnt" hidden></span><button id="next" aria-label="Next">&gt;</button></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<script>
+/* ===== EDIT THESE ===== */
+const NAME = "My Friend";            // friend's name
+const PASSCODE = "0210";
+const LINES = [                      // one line per photo slide (9)
+ "Thanks for always being there for me.",
+ "You make every plan more fun.",
+ "Best friend vibes, always.",
+ "Still laughing about this one.",
+ "Our memories are my favourite ones.",
+ "You're the kind of friend everyone wishes for.",
+ "Good times, good food, good friends.",
+ "Thanks for all the support and the laughs.",
+ "You deserve a really great year."
+];
+const BEST = "Wishing you endless smiles, big dreams and the best year yet. Happy Birthday, " ;
+/* ====================== */
+
+const fire=o=>{try{if(window.confetti)window.confetti(o)}catch(e){}};
+const rnd=(a,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
+const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild};
+const stage=document.getElementById('stage');
+const HEART="M100 175 C20 110 10 50 55 35 C80 27 98 45 100 58 C102 45 120 27 145 35 C190 50 180 110 100 175Z";
+
+/* ---------- build slides ---------- */
+const slides=[];
+// 1 passcode
+slides.push($(`<section class="slide"><div class="row">
+ <div class="heartframe"><svg viewBox="0 0 200 190"><defs><clipPath id="hc"><path d="${HEART}" transform="translate(0,6) scale(.96)"/></clipPath><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3f0"/><stop offset="1" stop-color="#f4f7f8"/></linearGradient></defs>
+ <path d="${HEART}" fill="#fff6ea" stroke="#fff" stroke-width="6" stroke-dasharray="3 3"/>
+ <g clip-path="url(#hc)"><rect width="200" height="190" fill="url(#sea)"/><text x="100" y="125" font-size="78" text-anchor="middle">🐧</text><text x="140" y="140" font-size="42" text-anchor="middle">🌷</text></g></svg><span class="bow">🎀</span></div>
+ <div><h2 style="margin-bottom:10px">Enter a passcode</h2><div class="boxes" id="boxes"><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div></div>
+ <div class="pad" id="pad"></div></div></div></section>`));
+// 2 turtle-style heart
+slides.push($(`<section class="slide"><h1 id="t2">Happy Birthday!</h1><div id="hw" style="position:relative;width:min(320px,72vw,40vh);aspect-ratio:1;cursor:pointer"><canvas id="tc" width="400" height="400" style="width:100%;height:100%"></canvas><div id="orb" style="position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none"></div></div><h2 id="n3">${NAME}</h2><p class="line">This one's just for you!</p></section>`));
+// 3 cake
+slides.push($(`<section class="slide"><svg id="cake" viewBox="0 0 240 250" width="min(300px,72vw)">
+ <ellipse cx="120" cy="228" rx="105" ry="14" fill="#0005"/><rect x="25" y="150" width="190" height="70" rx="18" fill="#f2a5b8"/>
+ <rect x="50" y="100" width="140" height="55" rx="16" fill="#fff0dc"/>
+ <path d="M50 118q10 22 20 0t20 0 20 0 20 0 20 0 20 0" fill="#e8573f"/>
+ <g class="candle"><rect x="78" y="62" width="10" height="40" rx="3" fill="#8ad0e8"/><ellipse class="flame" cx="83" cy="52" rx="7" ry="11" fill="#ffc83d"/></g>
+ <g class="candle"><rect x="115" y="56" width="10" height="46" rx="3" fill="#f7b7d0"/><ellipse class="flame" cx="120" cy="46" rx="7" ry="11" fill="#ffc83d"/></g>
+ <g class="candle"><rect x="152" y="62" width="10" height="40" rx="3" fill="#b9e08a"/><ellipse class="flame" cx="157" cy="52" rx="7" ry="11" fill="#ffc83d"/></g>
+ <circle cx="95" cy="182" r="6" fill="#4a1a22"/><circle cx="145" cy="182" r="6" fill="#4a1a22"/><path d="M107 190q13 12 26 0" stroke="#4a1a22" stroke-width="4" fill="none" stroke-linecap="round"/>
+ <circle cx="78" cy="194" r="8" fill="#e8573f" opacity=".5"/><circle cx="162" cy="194" r="8" fill="#e8573f" opacity=".5"/></svg>
+ <h2 id="ct">Make a wish!</h2><button class="cta" id="blow">Blow the candles</button></section>`));
+// 4-12 photos (pic1 to pic9)
+LINES.forEach((l,i)=>slides.push($(`<section class="slide"><div class="polaroid" style="transform:rotate(${i%2?3:-3}deg)"><span class="tape"></span>
+ <div class="ph"><img src="pic${i+1}.jpeg" alt="Photo ${i+1}"></div></div><p class="line">${l}</p></section>`)));
+// 13 heart
+slides.push($(`<section class="slide"><svg id="hs" viewBox="0 0 200 190" width="260"><path id="hp" d="${HEART}" fill="#ffffff" fill-opacity="0" stroke="#ffd9c2" stroke-width="4"/><text id="ht" x="100" y="108" font-size="22" text-anchor="middle" fill="#e8573f" opacity="0" style="font-family:Caveat">Happy Birthday</text></svg>
+ <h1 id="n2">${NAME}</h1><p class="line">Have the best day ever!</p></section>`));
+// 14 best wishes
+slides.push($(`<section class="slide"><h1 id="bw">Best Wishes!</h1><p class="line">${BEST}${NAME}!</p><div style="font-size:60px" id="fin">🎂🎉🎁</div></section>`));
+slides.forEach(s=>stage.append(s));
+
+/* background stars */
+const bg=document.getElementById('bg');
+for(let i=0;i<34;i++){const s=document.createElement('div');s.className='star';bg.append(s);
+ gsap.set(s,{x:rnd(innerWidth),y:rnd(innerHeight),scale:rnd(.4,1.4)});
+ gsap.to(s,{opacity:.1,duration:rnd(1,3),repeat:-1,yoyo:true,delay:rnd(2)});
+ gsap.to(s,{y:'-=60',duration:rnd(6,12),repeat:-1,yoyo:true,ease:'sine.inOut'});}
+
+/* roaming pets */
+const pets=document.getElementById('pets');
+['🐧','🐱','🐶','🐰','🐥','🦊','🐼'].forEach(e=>{
+ const d=document.createElement('div');d.className='pet';const sp=document.createElement('span');sp.textContent=e;sp.style.display='inline-block';d.append(sp);pets.append(d);
+ gsap.set(d,{x:rnd(innerWidth-40),y:rnd(innerHeight-40)});
+ gsap.to(sp,{y:-12,rotate:rnd(-12,12),duration:.35,repeat:-1,yoyo:true,ease:'power1.inOut'});
+ (function roam(){const x=rnd(innerWidth-40),y=rnd(innerHeight-40),cx=gsap.getProperty(d,'x');
+  gsap.to(d,{x,y,scaleX:x>cx?-1:1,duration:rnd(3,7),ease:'sine.inOut',delay:rnd(.5),onComplete:roam});})();
+});
+
+/* music player logic (Ey Pataakey - Guru) */
+const audioPlayer=document.getElementById('audio-player');
+const musicBtn=document.getElementById('music-btn');
+let isPlaying=false;
+
+function toggleMusic(playState){
+ const shouldPlay=playState!==undefined?playState:!isPlaying;
+ if(shouldPlay){
+  audioPlayer.play().then(()=>{
+   isPlaying=true;musicBtn.textContent='🎵';musicBtn.classList.add('playing');
+  }).catch(e=>console.log('Audio autoplay waiting for user interaction',e));
+ }else{
+  audioPlayer.pause();
+  isPlaying=false;musicBtn.textContent='🔇';musicBtn.classList.remove('playing');
+ }
+}
+
+musicBtn.onclick=()=>toggleMusic();
+
+const startAudioOnUserTouch=()=>{
+ toggleMusic(true);
+ document.removeEventListener('click',startAudioOnUserTouch);
+ document.removeEventListener('keydown',startAudioOnUserTouch);
+ document.removeEventListener('touchstart',startAudioOnUserTouch);
+};
+document.addEventListener('click',startAudioOnUserTouch);
+document.addEventListener('keydown',startAudioOnUserTouch);
+document.addEventListener('touchstart',startAudioOnUserTouch);
+
+/* passcode logic */
+let code='';
+const boxes=[...document.querySelectorAll('.box')],pad=document.getElementById('pad');
+['1','2','3','4','5','6','7','8','9','*','0','#'].forEach(k=>{
+ const b=document.createElement('button');b.className='key';b.textContent=k;pad.append(b);
+ b.onclick=()=>{
+  gsap.fromTo(b,{scale:.8},{scale:1,duration:.4,ease:'back.out(3)'});
+  if(k==='*'||k==='#'){code='';}else if(code.length<4){code+=k;}
+  boxes.forEach((x,i)=>x.textContent=code[i]?'*':'');
+  if(code.length===4){
+   if(code===PASSCODE){code='';go(1);toggleMusic(true);setTimeout(()=>fire({particleCount:120,spread:90,origin:{y:.6}}),400);}
+   else{gsap.fromTo('#boxes',{x:-14},{x:0,duration:.6,ease:'elastic.out(2,.2)'});code='';setTimeout(()=>boxes.forEach(x=>x.textContent=''),300);}
+  }
+ };
+});
+
+/* transitions */
+const S=[...stage.children],nav=document.getElementById('nav');
+let cur=0,busy=false,loop=null,tw=null,tw2=null,beat=null;
+const FROM=[{y:140,rotate:-10},{x:-220,rotate:8},{scale:0,rotate:180},{rotationY:90,transformPerspective:700},{y:-200,rotate:10},{scale:2},{x:220,rotate:-8},{skewX:30,x:-100},{rotate:-90,scale:.3},{y:200,scale:.5}];
+const ENTER={
+ 1(s){const t=s.querySelector('#t2');t.innerHTML=[...t.textContent].map(ch=>'<span style="display:inline-block">'+(ch===' '?'&nbsp;':ch)+'</span>').join('');
+  gsap.from(t.children,{y:-80,opacity:0,rotate:()=>rnd(-40,40),duration:.8,stagger:.06,ease:'bounce.out'});
+  gsap.to(t.children,{y:-8,duration:.5,repeat:-1,yoyo:true,stagger:.08,delay:1.5,ease:'sine.inOut'});
+  gsap.from(s.querySelector('#n3'),{scale:0,duration:.9,delay:5.5,ease:'elastic.out(1,.5)'});
+  loop=setInterval(()=>{if(cur!==1)return;const h=document.createElement('div');h.className='fh';h.style.fontSize='40px';h.textContent=['🎈','🎈','🎉','✨','🎁'][Math.floor(rnd(5))];h.style.left=rnd(92)+'vw';s.append(h);
+   gsap.to(h,{y:-innerHeight-80,x:rnd(-40,40),rotate:rnd(-25,25),duration:rnd(4,6),ease:'none',onComplete:()=>h.remove()});},450);
+  const c=s.querySelector('#tc'),x=c.getContext('2d');x.clearRect(0,0,400,400);
+  const COL=['#ff3b3b','#3b6bff','#7dff3b','#ffe83b','#ff9d3b','#ff3bd9','#3bf0ff','#ffffff'],N=260,K=11.5;
+  const pt=t=>[200+K*16*Math.pow(Math.sin(t),3),175-K*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))];
+  const hw=s.querySelector('#hw'),orb=s.querySelector('#orb');
+  gsap.set(hw,{scale:1});
+  orb.innerHTML='';const R=hw.offsetWidth*.62;
+  for(let i=0;i<8;i++){const e=document.createElement('span');e.textContent=['✨','💫','⭐','✨'][i%4];e.style.cssText='position:absolute;font-size:24px';orb.append(e);
+   gsap.set(e,{x:Math.cos(i/8*6.283)*R,y:Math.sin(i/8*6.283)*R,xPercent:-50,yPercent:-50});}
+  gsap.to(orb,{rotate:360,duration:9,repeat:-1,ease:'none'});gsap.from(orb,{opacity:0,duration:1,delay:3.5});
+  hw.onclick=()=>{burst(hw,12);fire({particleCount:70,spread:80,origin:{y:.5}});gsap.fromTo(hw,{scale:1.2},{scale:1,duration:.6,ease:'elastic.out(1,.4)'})};
+  let last=0;const o={p:0};
+  tw=gsap.to(o,{p:1,duration:4,ease:'none',onUpdate(){const n=Math.floor(o.p*N);
+   for(;last<n;last++){const [px,py]=pt(last/N*Math.PI*2),col=COL[last%COL.length];
+    x.strokeStyle=col;x.globalAlpha=.8;x.lineWidth=1;x.beginPath();x.moveTo(200,330);x.lineTo(px,py);x.stroke();
+    x.globalAlpha=1;x.fillStyle=col;x.beginPath();x.arc(px,py,3,0,7);x.fill();}},
+   onComplete(){(()=>{fire({particleCount:110,spread:90,origin:{y:.5}});burst(hw,14);
+     beat=gsap.timeline({repeat:-1,repeatDelay:.4,onRepeat:()=>burst(hw,8)}).to(hw,{scale:1.12,duration:.15}).to(hw,{scale:1,duration:.15}).to(hw,{scale:1.07,duration:.15}).to(hw,{scale:1,duration:.2});})();}});
+  gsap.from(s.querySelector('.line'),{opacity:0,y:20,delay:4.5,duration:.8});},
+ 12(s){const p=s.querySelector('#hp'),L=p.getTotalLength();
+  gsap.set(p,{strokeDasharray:L,strokeDashoffset:L,fillOpacity:0});
+  gsap.timeline().to(p,{strokeDashoffset:0,duration:1.6,ease:'power2.inOut'}).to(p,{fillOpacity:1,duration:.6})
+   .to('#ht',{opacity:1,duration:.5},'<').to('#hs',{scale:1.08,duration:.5,repeat:-1,yoyo:true,ease:'sine.inOut',transformOrigin:'50% 50%'});
+  gsap.from('#n2',{y:40,opacity:0,duration:.8,delay:1.4,ease:'back.out(2)'});
+  loop=setInterval(()=>{if(cur!==12)return;const h=document.createElement('div');h.className='fh';h.textContent=['🤍','🤍','✨','🤍'][Math.floor(rnd(4))];h.style.left=rnd(92)+'vw';s.append(h);
+   gsap.to(h,{y:-innerHeight-60,x:rnd(-50,50),rotate:rnd(-40,40),duration:rnd(3,5),ease:'none',onComplete:()=>h.remove()});},280);},
+ 2(s){gsap.from('#cake',{y:-300,duration:1.2,ease:'bounce.out'});
+  gsap.to('.flame',{scaleY:1.3,scaleX:.85,duration:.18,repeat:-1,yoyo:true,transformOrigin:'50% 100%',stagger:.07});
+  gsap.set('.flame',{opacity:1});document.getElementById('ct').textContent='Make a wish!';document.getElementById('blow').style.display='';},
+ 13(s){fire({particleCount:200,spread:120,origin:{y:.5}});
+  loop=setInterval(()=>{if(cur===13)fire({particleCount:40,angle:rnd(55,125),spread:70,origin:{x:rnd(),y:rnd(.3)}})},900);
+  gsap.from('#bw',{scale:0,rotate:-20,duration:1,ease:'elastic.out(1,.5)'});
+  gsap.to('#fin',{y:-14,duration:.5,repeat:-1,yoyo:true,ease:'sine.inOut'});}
+};
+document.getElementById('blow').onclick=function(){
+ gsap.to('.flame',{scale:0,opacity:0,duration:.4,stagger:.15,onComplete(){fire({particleCount:160,spread:100,origin:{y:.5}})}});
+ document.getElementById('ct').textContent='Wish granted!';this.style.display='none';
+ gsap.fromTo('#cake',{rotate:-6},{rotate:0,duration:.8,ease:'elastic.out(1,.3)'});};
+
+function burst(el,n){const sl=el.closest('.slide'),r=el.getBoundingClientRect(),q=sl.getBoundingClientRect();
+ for(let i=0;i<n;i++){const h=document.createElement('div');h.className='fh';h.style.cssText+=`left:${r.left-q.left+r.width/2}px;top:${r.top-q.top+r.height/2}px;bottom:auto;font-size:${rnd(18,32)}px`;h.textContent=['💖','💗','💕','🌸','✨'][i%5];sl.append(h);
+  const a=i/n*6.283+rnd(.3);gsap.fromTo(h,{scale:.3,opacity:1},{x:Math.cos(a)*rnd(90,180),y:Math.sin(a)*rnd(90,180),scale:1,opacity:0,duration:rnd(1,1.7),ease:'power2.out',onComplete:()=>h.remove()});}}
+function go(n){
+ if(n<0||n>=S.length||busy||n===cur)return;busy=true;clearInterval(loop);[tw,tw2,beat].forEach(a=>a&&a.kill());gsap.killTweensOf("#hw,#orb");
+ const o=S[cur],i=S[n],d=n>cur?1:-1;
+ gsap.to(o,{opacity:0,scale:.8,x:-120*d,rotate:-8*d,duration:.45,ease:'power2.in',onComplete(){o.classList.remove('on');gsap.set(o,{clearProps:'all'})}});
+ cur=n;i.classList.add('on');
+ const v=n>=3&&n<=11?FROM[n-3]:{y:80,scale:.8};
+ gsap.from(i,{...v,opacity:0,duration:.9,ease:'back.out(1.3)',clearProps:'transform,opacity'});
+ gsap.from(i.querySelectorAll('.line,.cap'),{y:30,opacity:0,duration:.7,delay:.5,stagger:.15});
+ try{if(ENTER[n])ENTER[n](i);}catch(e){console.error(e)}
+ nav.style.display=n===0?'none':'flex';
+ setTimeout(()=>busy=false,800);
+}
+document.getElementById('next').onclick=()=>go(cur+1);
+document.getElementById('prev').onclick=()=>go(cur-1);
+addEventListener('keydown',e=>{if(cur===0)return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1)});
+
+S[0].classList.add('on');
+gsap.from(S[0].children[0].children,{scale:.6,opacity:0,duration:.9,stagger:.2,ease:'back.out(1.6)'});
+</script></body></html>
